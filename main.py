@@ -20,11 +20,15 @@ def ask_gemini(message: str) -> str:
     if not api_key:
         raise Exception("GOOGLE_API_KEY non configurée")
     client = genai.Client(api_key=api_key)
-    response = client.models.generate_content(
-        model="gemini-2.5-flash-lite",
-        contents=f"{PROMPT_SYSTEME}\n\n{message}"
-    )
-    return response.text
+    try:
+        response = client.models.generate_content(
+            model="gemini-2.5-flash-lite",
+            contents=f"{PROMPT_SYSTEME}\n\n{message}"
+        )
+        return response.text
+    except Exception as e:
+        print(f"[DEBUG GEMINI] Échec : {type(e).__name__} — {str(e)}")
+        raise
 
 def ask_groq(message: str) -> str:
     api_key = os.environ.get("GROQ_API_KEY")
