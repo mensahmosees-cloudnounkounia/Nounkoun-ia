@@ -14,7 +14,13 @@ app.add_middleware(
 )
 
 genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
-model = genai.GenerativeModel("gemini-2.0-flash")
+# Essaie plusieurs modèles gratuits
+for model_name in ["gemini-2.0-flash-lite", "gemini-1.5-flash-8b", "gemini-1.5-flash"]:
+    try:
+        model = genai.GenerativeModel(model_name)
+        break
+    except:
+        continue
 
 class Question(BaseModel):
     message: str
