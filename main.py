@@ -1,42 +1,16 @@
-import os
-import base64
-from fastapi import FastAPI, HTTPException
-from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel
-import openai
-
-app = FastAPI(title="Nounkoun IA")
-
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
-
-class Question(BaseModel):
-    message: str
-
-@app.get("/")
-def home():
-    return {"status": "Nounkoun IA est en ligne", "message": "Envoyez POST /ask"}
-
-@app.post("/ask")
-def ask(q: Question):
-    api_key = os.getenv("OPENAI_API_KEY")
-    if not api_key:
-        raise HTTPException(status_code=500, detail="OPENAI_API_KEY manquante sur Render")
-
-    client = openai.OpenAI(api_key=api_key)
-    try:
-        resp = client.chat.completions.create(
-            model="gpt-4o-mini",
-            messages=[
-                {"role": "system", "content": "Tu es Nounkoun IA, assistant agricole pour les paysans du Bénin. Réponds simple, en français, conseils pratiques."},
-                {"role": "user", "content": q.message}
-            ]
-        )
-        return {"answer": resp.choices[0].message.content}
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+from http.server import BaseHTTPRequestHandler, HTTPServer
+import urllib.parse
+EMO={"content":("😊🎉","Merci Mitché! Tu es content, force! 💪"),"triste":("😔💔","Je comprends ta peine 😔. On va trouver solution."),"fier":("💪😎","Tu dis Nounkoun fort? C'est toi le fort!"),"neutre":("🤔🌾","Je t'écoute Mitché.")}
+def detect(t):
+ t=t.lower()
+ if any(x in t for x in ["merci","content","fort","genial"]): return "content"
+ if any(x in t for x in ["perdu","mort","triste","difficile"]): return "triste"
+ if "nounkoun fort" in t or "reussi" in t: return "fier"
+ return "neutre"
+class H(BaseHTTPRequestHandler):
+ def do_GET(self):
+  q=urllib.parse.parse_qs(urllib.parse.urlparse(self.path).query).get('q',[''])[0]; e=detect(q) if q else "neutre"; emoji,txt=EMO[e]
+  self.send_response(200);self.send_header("Content-type","text/html; charset=utf-8");self.end_headers()
+  h=f"<html><head><meta charset=utf-8><meta name=viewport content='width=device-width'><style>body{{background:#f0fdf4;padding:10px;font-family:sans-serif}}.card{{background:#fff;padding:14px;border-radius:12px;margin:10px 0}}</style></head><body><h1>NOUNKOUN V11 COEUR {emoji}</h1><div class=card style='font-size:40px;text-align:center'>{emoji} {e.upper()}</div><div class=card><form><input name=q value='{q}' style='padding:12px;width:70%'><button>OK</button></form></div><div class=card><b>Nonzo:</b> {txt}</div></body></html>"
+  self.wfile.write(h.encode())
+print("V11 COEUR sur 8000");HTTPServer(("0.0.0.0",8000), H).serve_forever()
